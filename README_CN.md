@@ -10,6 +10,10 @@ Hyprwarp 是一款专为 [Hyprland](https://github.com/hyprwm/Hyprland) ([Waylan
 
 ## 功能特性
 
+<p align="center">
+<img src="assets/demo.gif" height="500px"/>
+</p>
+
 - **基于网格的提示标签**：快速将屏幕划分为可定位的区域。
 - **高度可定制的回调系统**：定位后可执行任意 Shell 命令，支持变量替换。
 - **自定义外观**：支持配置背景色（透明度）、文字颜色、字体大小及圆角。

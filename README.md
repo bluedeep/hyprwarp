@@ -10,6 +10,10 @@ It overlays a grid-based hint system on the screen, allowing users to instantly 
 
 ## Features
 
+<p align="center">
+<img src="assets/demo.gif" height="500px"/>
+</p>
+
 - **Grid-based hint tags**: Quickly divides the screen into positionable areas
 - **Highly customizable callback system**: Execute arbitrary shell commands after positioning with variable substitution
 - **Customizable appearance**: Configure background color (with transparency), text color, font size, and corner radius
