@@ -1,0 +1,157 @@
+# Hyprwarp
+
+[中文文档](README_CN.md)
+
+Hyprwarp is a hint mode tool designed for [Hyprland](https://github.com/hyprwm/Hyprland) ([Wayland](https://wayland.freedesktop.org/)), inspired by [warpd](https://github.com/rvaiya/warpd).
+
+It overlays a grid-based hint system on the screen, allowing users to instantly pinpoint coordinates by typing short character combinations. Through configurable callback commands, it seamlessly integrates with tools like `dotool` to enable **fully keyboard-driven mouse movement, clicking, dragging, and scrolling**.
+
+> **Note**: Hyprwarp focuses on "positioning". It doesn't directly simulate input devices, but instead calls third-party tools (like `dotool`) via callback commands to perform actual mouse actions. This design decouples positioning logic from low-level simulation, making it extremely flexible and avoiding reinventing the wheel.
+
+## Features
+
+- **Grid-based hint tags**: Quickly divides the screen into positionable areas
+- **Highly customizable callback system**: Execute arbitrary shell commands after positioning with variable substitution
+- **Customizable appearance**: Configure background color (with transparency), text color, font size, and corner radius
+- **Smart key support**: Supports deduplicated custom character sets and handles special keys (like `;`, `]`, `,`)
+- **Minimal configuration**: Simple key-value configuration with automatic default config generation
+
+## Dependencies
+
+- `wayland-client`
+- `wayland-cursor`
+- `xkbcommon`
+- `cairo`
+- `dotool` (**Recommended**: for mouse movement and click simulation)
+
+### Installing dotool (Arch Linux example)
+
+Recommended to install from source for latest features:
+
+```bash
+git clone https://git.sr.ht/~geb/dotool
+cd dotool
+./build.sh && sudo ./build.sh install  # Requires go and scdoc
+# Add user to necessary groups
+sudo usermod -aG video $USER
+sudo usermod -aG input $USER
+# Reboot for changes to take effect
+```
+
+## Building and Installation
+
+```bash
+# Build
+make
+
+# Install (default to /usr/local/bin)
+sudo make install
+
+# Or install to a specific path
+sudo make install PREFIX=/usr
+```
+
+## Usage
+
+1. Recommended to bind a keyboard shortcut in Hyprland to launch `hyprwarp` (see configuration example below)
+2. After launching, a grid of hint tags appears on screen
+3. Type characters corresponding to tags (e.g., type `as`) to filter
+4. **Function keys**:
+   - `ESC`: Cancel and exit
+   - `Backspace`: Delete last input character
+5. **Trigger logic**: When input uniquely matches a tag:
+   - First executes `on_select_cmd` (typically to move mouse pointer)
+   - Then executes `on_exit_cmd` (typically to switch submodes or send notifications)
+
+## Configuration
+
+Configuration file path: `~/.config/hyprwarp/config`
+
+If the file doesn't exist on first run, it will be automatically created with these default values:
+
+| Option | Default | Description |
+| :--- | :--- | :--- |
+| `hint_bgcolor` | `#ff555560` | Hint background color (ARGB hex) |
+| `hint_fgcolor` | `#ffffffff` | Hint text color |
+| `hint_size` | `18` | Font size in pixels (range 8-64) |
+| `hint_radius` | `25` | Corner radius as percentage of height (0-100) |
+| `hint_chars` | `asdfghjklqwertzxv` | Character set for hints (determines grid density) |
+| `on_select_cmd` | `echo mouseto {scale_x} {scale_y} \| dotool` | Command triggered immediately after selecting a hint |
+| `on_exit_cmd` | `hyprctl notify ...` | Command triggered before final exit |
+
+### Command Variable Substitution
+
+In `on_select_cmd` and `on_exit_cmd`, you can use these placeholders:
+
+- `{screen_w}`, `{screen_h}`: Original screen width and height
+- `{x}`, `{y}`: Absolute pixel coordinates of selected position
+- `{scale_x}`, `{scale_y}`: Normalized coordinates (0.0 to 1.0), suitable for `dotool`
+
+## Advanced Hyprland Configuration Example
+
+Add the following to your `hyprland.conf` for a complete keyboard-driven mouse experience similar to `warpd`:
+
+```ini
+# Start dotool daemon
+exec-once = dotoold 
+
+$mainMod = SUPER
+
+# Recommended mouse configuration: auto-hide during operations
+cursor {
+    hide_on_key_press = true 
+    inactive_timeout = 3     
+}
+
+# 1. Bind launch shortcut (Win + ;)
+bind = $mainMod, semicolon, exec, hyprwarp
+
+# 2. Define cursor submap (automatically triggered by hyprwarp's on_exit_cmd)
+submap = cursor
+
+# V key: Simulate holding left button (enter drag mode)
+bind = , v, exec, echo "buttondown left" | dotoolc 
+
+# Basic movement (Vim style: hjkl)
+binde = , j, exec, echo "mousemove 0 5" | dotoolc
+binde = , k, exec, echo "mousemove 0 -5" | dotoolc
+binde = , l, exec, echo "mousemove 5 0" | dotoolc
+binde = , h, exec, echo "mousemove -5 0" | dotoolc
+
+# Fast movement (Shift + hjkl)
+binde = SHIFT, j, exec, echo "mousemove 0 30" | dotoolc
+binde = SHIFT, k, exec, echo "mousemove 0 -30" | dotoolc
+binde = SHIFT, l, exec, echo "mousemove 30 0" | dotoolc
+binde = SHIFT, h, exec, echo "mousemove -30 0" | dotoolc
+
+# Click simulation
+bind = , space, exec, echo "click left" | dotoolc    # Space: left click
+bind = , f,     exec, echo "click right" | dotoolc   # F key: right click
+bind = , m,     exec, echo "click middle" | dotoolc  # M key: middle click
+
+# Scroll wheel simulation
+binde = , bracketleft,  exec, echo "wheel 20" | dotoolc  # [ : scroll up
+binde = , bracketright, exec, echo "wheel -20" | dotoolc # ] : scroll down
+
+# 3. Exit cursor mode (ESC)
+# Restore mouse visibility settings, exit submap, and close Hyprland notification
+bind = , escape, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:inactive_timeout 3; hyprctl keyword cursor:hide_on_key_press true; hyprctl dispatch submap reset; hyprctl dismissnotify
+
+submap = reset
+```
+
+## Support
+
+If you find this project helpful, consider buying me a coffee! ☕
+
+### Donation
+
+**Alipay** | **WeChat Pay**
+:---:|:---:
+![Alipay QR Code](https://www.inktone.top/imgs/alipay-qr.png) | ![WeChat Pay QR Code](https://www.inktone.top/imgs/wechat-qr.png)
+
+> Replace the above image URLs with your actual QR code images.
+
+## License
+
+Open source under MIT License. See [LICENSE](LICENSE) file for details.
