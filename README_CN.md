@@ -52,7 +52,7 @@ sudo make install PREFIX=/usr
 
 ## 使用方法
 
-1. 建议在 Hyprland 中绑定快捷键启动 `hyprwarp`（见下文配置示例）。
+1. 建议在 Hyprland 中绑定快捷键启动 `hyprwarp`（见下文[配置示例](#hyprland-%E8%BF%9B%E9%98%B6%E9%85%8D%E7%BD%AE%E7%A4%BA%E4%BE%8B)）。
 2. 启动后，屏幕会显示提示标签网格。
 3. 输入标签对应的字符（如输入 `as`）进行过滤。
 4. **功能按键**：
@@ -147,7 +147,7 @@ submap = reset
 
 **支付宝** | **微信**
 :---:|:---:
-![支付宝二维码](https://www.inktone.top/imgs/alipay-qr.png) | ![微信二维码](https://www.inktone.top/imgs/wechat-qr.png)
+![支付宝二维码](assets/alipay-qr.png) | ![微信二维码](assets/wechat-qr.png)
 
 
 ## 许可证

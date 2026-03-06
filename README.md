@@ -53,7 +53,7 @@ sudo make install PREFIX=/usr
 
 ## Usage
 
-1. Recommended to bind a keyboard shortcut in Hyprland to launch `hyprwarp` (see configuration example below)
+1. Recommended to bind a keyboard shortcut in Hyprland to launch `hyprwarp` ([see configuration example below](#advanced-hyprland-configuration-example))
 2. After launching, a grid of hint tags appears on screen
 3. Type characters corresponding to tags (e.g., type `as`) to filter
 4. **Function keys**:
@@ -148,9 +148,7 @@ If you find this project helpful, consider buying me a coffee! ☕
 
 **Alipay** | **WeChat Pay**
 :---:|:---:
-![Alipay QR Code](https://www.inktone.top/imgs/alipay-qr.png) | ![WeChat Pay QR Code](https://www.inktone.top/imgs/wechat-qr.png)
-
-> Replace the above image URLs with your actual QR code images.
+![Alipay QR Code](assets/alipay-qr.png) | ![WeChat Pay QR Code](assets/wechat-qr.png)
 
 ## License
 
