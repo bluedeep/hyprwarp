@@ -150,9 +150,9 @@ If you find this project helpful, consider buying me a coffee! ☕
 
 ### Donation
 
-**Alipay** | **WeChat Pay**
-:---:|:---:
-![Alipay QR Code](assets/alipay-qr.png) | ![WeChat Pay QR Code](assets/wechat-qr.png)
+**AFDIAN** | **Alipay** | **WeChat Pay**
+:---:|:---:|:---:
+If you can't use Alipay or WeChat, you can support my work through [AFDIAN](https://afdian.com/a/bluedeep), thank you very much! [https://afdian.com/a/bluedeep](https://afdian.com/a/bluedeep) | ![Alipay QR Code](assets/alipay-qr.png) | ![WeChat Pay QR Code](assets/wechat-qr.png)
 
 ## License
 
