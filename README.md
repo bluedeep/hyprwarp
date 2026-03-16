@@ -14,6 +14,7 @@ It overlays a grid-based hint system on the screen, allowing users to instantly 
 <img src="assets/demo.gif" height="500px"/>
 </p>
 
+- **Multi-screen support**: Automatically detects and works across multiple monitors with unique screen prefix characters
 - **Grid-based hint tags**: Quickly divides the screen into positionable areas
 - **Highly customizable callback system**: Execute arbitrary shell commands after positioning with variable substitution
 - **Customizable appearance**: Configure background color (with transparency), text color, font size, and corner radius
@@ -59,11 +60,12 @@ sudo make install PREFIX=/usr
 
 1. Recommended to bind a keyboard shortcut in Hyprland to launch `hyprwarp` ([see configuration example below](#advanced-hyprland-configuration-example))
 2. After launching, a grid of hint tags appears on screen
-3. Type characters corresponding to tags (e.g., type `as`) to filter
-4. **Function keys**:
+3. **Multi-screen mode**: If you have multiple monitors, each screen has a unique prefix character (first character of `hint_chars`). Type the prefix to select a screen, then type the hint label.
+4. **Single-screen mode**: Simply type characters corresponding to tags (e.g., type `as`) to filter
+5. **Function keys**:
    - `ESC`: Cancel and exit
    - `Backspace`: Delete last input character
-5. **Trigger logic**: When input uniquely matches a tag:
+6. **Trigger logic**: When input uniquely matches a tag:
    - First executes `on_select_cmd` (typically to move mouse pointer)
    - Then executes `on_exit_cmd` (typically to switch submodes or send notifications)
 
@@ -80,7 +82,7 @@ If the file doesn't exist on first run, it will be automatically created with th
 | `hint_size` | `18` | Font size in pixels (range 8-64) |
 | `hint_radius` | `25` | Corner radius as percentage of height (0-100) |
 | `hint_chars` | `asdfghjklqwertzxv` | Character set for hints (determines grid density) |
-| `on_select_cmd` | `echo mouseto {scale_x} {scale_y} \| dotool` | Command triggered immediately after selecting a hint |
+| `on_select_cmd` | `hyprctl dispatch movecursor {global_x} {global_y}` | Command triggered immediately after selecting a hint |
 | `on_exit_cmd` | `hyprctl notify ...` | Command triggered before final exit |
 
 ### Command Variable Substitution
@@ -88,8 +90,10 @@ If the file doesn't exist on first run, it will be automatically created with th
 In `on_select_cmd` and `on_exit_cmd`, you can use these placeholders:
 
 - `{screen_w}`, `{screen_h}`: Original screen width and height
-- `{x}`, `{y}`: Absolute pixel coordinates of selected position
+- `{x}`, `{y}`: Absolute pixel coordinates of selected position (relative to current screen)
 - `{scale_x}`, `{scale_y}`: Normalized coordinates (0.0 to 1.0), suitable for `dotool`
+- `{global_x}`, `{global_y}`: Global pixel coordinates across all screens (unified coordinate system)
+- `{global_scale_x}`, `{global_scale_y}`: Global normalized coordinates (relative to combined screen area)
 
 ## Advanced Hyprland Configuration Example
 

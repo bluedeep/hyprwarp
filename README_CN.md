@@ -14,6 +14,7 @@ Hyprwarp 是一款专为 [Hyprland](https://github.com/hyprwm/Hyprland) ([Waylan
 <img src="assets/demo.gif" height="500px"/>
 </p>
 
+- **多屏幕支持**：自动检测并支持多显示器，每个显示器有独特的前缀字符
 - **基于网格的提示标签**：快速将屏幕划分为可定位的区域。
 - **高度可定制的回调系统**：定位后可执行任意 Shell 命令，支持变量替换。
 - **自定义外观**：支持配置背景色（透明度）、文字颜色、字体大小及圆角。
@@ -58,11 +59,12 @@ sudo make install PREFIX=/usr
 
 1. 建议在 Hyprland 中绑定快捷键启动 `hyprwarp`（见下文[配置示例](#hyprland-%E8%BF%9B%E9%98%B6%E9%85%8D%E7%BD%AE%E7%A4%BA%E4%BE%8B)）。
 2. 启动后，屏幕会显示提示标签网格。
-3. 输入标签对应的字符（如输入 `as`）进行过滤。
-4. **功能按键**：
+3. **多屏幕模式**：如果有多个显示器，每个屏幕会有一个唯一的前缀字符（`hint_chars` 的第一个字符对应第一个屏幕，以此类推）。先输入前缀选择屏幕，然后输入标签字符。
+4. **单屏幕模式**：直接输入标签对应的字符（如输入 `as`）进行过滤。
+5. **功能按键**：
    - `ESC`：取消操作并退出。
    - `Backspace`：删除上一个输入的字符。
-5. **触发逻辑**：当输入唯一匹配某个标签时：
+6. **触发逻辑**：当输入唯一匹配某个标签时：
    - 首先执行 `on_select_cmd`（通常用于移动鼠标指针）。
    - 随后执行 `on_exit_cmd`（通常用于切换子模式或发送通知）。
 
@@ -79,7 +81,7 @@ sudo make install PREFIX=/usr
 | `hint_size` | `18` | 字体大小 (像素, 范围 8-64) |
 | `hint_radius` | `25` | 圆角半径 (占高度的百分比, 0-100) |
 | `hint_chars` | `asdfghjklqwertzxv` | 标签字符集 (决定网格密度) |
-| `on_select_cmd` | `echo mouseto {scale_x} {scale_y} \| dotool` | 选中标签后立即触发的命令 |
+| `on_select_cmd` | `hyprctl dispatch movecursor {global_x} {global_y}` | 选中标签后立即触发的命令 |
 | `on_exit_cmd` | `hyprctl notify ...` | 最终退出前触发的命令 |
 
 ### 命令变量替换
@@ -87,8 +89,10 @@ sudo make install PREFIX=/usr
 在 `on_select_cmd` 和 `on_exit_cmd` 中，你可以使用以下占位符：
 
 - `{screen_w}`, `{screen_h}`：屏幕原始宽高。
-- `{x}`, `{y}`：选中位置的绝对像素坐标。
+- `{x}`, `{y}`：选中位置的绝对像素坐标（相对于当前屏幕）。
 - `{scale_x}`, `{scale_y}`：选中位置的归一化坐标 (0.0 到 1.0)，适合 `dotool` 使用。
+- `{global_x}`, `{global_y}`：全局像素坐标（所有屏幕的统一坐标系）。
+- `{global_scale_x}`, `{global_scale_y}`：全局归一化坐标（相对于组合屏幕区域）。
 
 ## Hyprland 进阶配置示例
 
