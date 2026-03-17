@@ -1019,9 +1019,62 @@ static void move_mouse(int x, int y)
  * Main Function
  * ============================================================================ */
 
+static void print_version(void)
+{
+#ifndef VERSION
+#define VERSION "unknown"
+#endif
+    printf("hyprwarp v%s\n", VERSION);
+}
+
+static void print_help(const char *prog_name)
+{
+    printf("hyprwarp - A hint-based mouse warp tool for Wayland\n\n");
+    printf("Usage: %s [OPTIONS]\n\n", prog_name);
+    printf("Options:\n");
+    printf("  -h, --help     Show this help message and exit\n");
+    printf("  -v, --version  Show version information and exit\n");
+    printf("\n");
+    printf("After launching, a grid of hint tags appears on screen.\n");
+    printf("Type characters to filter hints. Press ESC to cancel.\n");
+    printf("\n");
+    printf("Multi-screen: First character selects the screen (from hint_chars).\n");
+    printf("\n");
+    printf("Configuration file: ~/.config/hyprwarp/config\n");
+    printf("\n");
+    printf("Callback commands (in config):\n");
+    printf("  on_select_cmd - executed when a hint is selected\n");
+    printf("  on_exit_cmd   - executed before program exits\n");
+    printf("\n");
+    printf("Available placeholders:\n");
+    printf("  {screen_w}, {screen_h}   - screen dimensions\n");
+    printf("  {x}, {y}                 - pixel coordinates (relative to screen)\n");
+    printf("  {scale_x}, {scale_y}     - normalized coords (0.0-1.0)\n");
+    printf("  {global_x}, {global_y}   - global pixel coordinates\n");
+    printf("  {global_scale_x/y}       - global normalized coordinates\n");
+    printf("\n");
+    printf("Project page: https://github.com/bluedeep/hyprwarp\n");
+}
+
 int main(int argc, char **argv)
 {
-    (void)argc; (void)argv;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            print_help(argv[0]);
+            return 0;
+        }
+        if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+            print_version();
+            return 0;
+        }
+        if (strcmp(argv[i], "--") == 0) {
+            break;
+        }
+        fprintf(stderr, "Unknown option: %s\n", argv[i]);
+        fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+        return 1;
+    }
+    
     load_config();
     
     signal(SIGINT, SIG_DFL);

@@ -1,8 +1,11 @@
 PREFIX ?= /usr/local
 
+VERSION = 1.0.1
+
 CC = gcc
 CFLAGS = -g -Wall -Wextra -pedantic -std=c99 -O2
 CFLAGS += -D_DEFAULT_SOURCE -D_FORTIFY_SOURCE=2
+CFLAGS += -DVERSION=\"$(VERSION)\"
 CFLAGS += $(shell pkg-config --cflags wayland-client xkbcommon cairo)
 CFLAGS += -I/usr/include/freetype2/
 LDFLAGS = -lwayland-client -lwayland-cursor -lxkbcommon -lrt -lcairo -lpthread $(shell pkg-config --libs cairo)
