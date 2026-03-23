@@ -44,15 +44,30 @@ sudo usermod -aG input $USER
 
 ## 构建与安装
 
+### 从源码构建
+
 ```bash
-# 构建
 make
-
-# 安装 (默认到 /usr/local/bin)
 sudo make install
+```
 
-# 或者安装到指定路径
-sudo make install PREFIX=/usr
+### Nix / NixOS
+
+```bash
+# 直接运行
+nix run github:bluedeep/hyprwarp
+
+# NixOS flake 配置中安装
+# 在你的 flake.nix 中添加 input:
+inputs = {
+  hyprwarp.url = "github:bluedeep/hyprwarp";
+  # ...
+};
+
+# 然后在配置中使用:
+environment.systemPackages = [
+  inputs.hyprwarp.packages.${pkgs.system}.default
+];
 ```
 
 ## 使用方法

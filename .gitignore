@@ -6,6 +6,9 @@ src/*.o
 # Executables
 hyprwarp
 
+# Nix
+result
+
 # Editor
 .idea/
 .vscode/
