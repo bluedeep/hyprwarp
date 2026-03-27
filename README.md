@@ -75,7 +75,7 @@ environment.systemPackages = [
 
 1. Recommended to bind a keyboard shortcut in Hyprland to launch `hyprwarp` ([see configuration example below](#advanced-hyprland-configuration-example))
 2. After launching, a grid of hint tags appears on screen
-3. **Multi-screen mode**: If you have multiple monitors, each screen has a unique prefix character (first character of `hint_chars`). Type the prefix to select a screen, then type the hint label.
+3. **Multi-screen mode**: If you have multiple monitors, each screen has a unique prefix character (first character of `hint_chars` corresponds to the first screen, and so on). Type the prefix to select a screen, then type the hint label.
 4. **Single-screen mode**: Simply type characters corresponding to tags (e.g., type `as`) to filter
 5. **Function keys**:
    - `ESC`: Cancel and exit
@@ -126,39 +126,41 @@ cursor {
     inactive_timeout = 3     
 }
 
-# 1. Bind launch shortcut (Win + ;)
-bind = $mainMod, semicolon, exec, hyprwarp
+bind = $mainMod, semicolon, exec, hyprwarp  # Super + ; to launch hyprwarp hints mode
 
-# 2. Define cursor submap (automatically triggered by hyprwarp's on_exit_cmd)
+# Define cursor submap (automatically triggered by hyprwarp's on_exit_cmd)
 submap = cursor
 
-# V key: Simulate holding left button (enter drag mode)
-bind = , v, exec, echo "buttondown left" | dotoolc 
+# Enter drag mode
+bind = , v, exec, echo "buttondown left" | dotoolc  # V: hold left button
 
-# Basic movement (Vim style: hjkl)
-binde = , j, exec, echo "mousemove 0 5" | dotoolc
-binde = , k, exec, echo "mousemove 0 -5" | dotoolc
-binde = , l, exec, echo "mousemove 5 0" | dotoolc
-binde = , h, exec, echo "mousemove -5 0" | dotoolc
+# Mouse movement (Vim style)
+binde = , j, exec, echo "mousemove 0 30" | dotoolc   # j: move down
+binde = , k, exec, echo "mousemove 0 -30" | dotoolc  # k: move up
+binde = , l, exec, echo "mousemove 30 0" | dotoolc   # l: move right
+binde = , h, exec, echo "mousemove -30 0" | dotoolc  # h: move left
 
-# Fast movement (Shift + hjkl)
-binde = SHIFT, j, exec, echo "mousemove 0 30" | dotoolc
-binde = SHIFT, k, exec, echo "mousemove 0 -30" | dotoolc
-binde = SHIFT, l, exec, echo "mousemove 30 0" | dotoolc
-binde = SHIFT, h, exec, echo "mousemove -30 0" | dotoolc
+# Fine movement
+binde = SHIFT, j, exec, echo "mousemove 0 10" | dotoolc      # shift + j: slow down
+binde = SHIFT, k, exec, echo "mousemove 0 -10" | dotoolc      # shift + k: slow up
+binde = SHIFT, l, exec, echo "mousemove 10 0" | dotoolc       # shift + l: slow right
+binde = SHIFT, h, exec, echo "mousemove -10 0" | dotoolc      # shift + h: slow left
 
 # Click simulation
 bind = , space, exec, echo "click left" | dotoolc    # Space: left click
-bind = , f,     exec, echo "click right" | dotoolc   # F key: right click
-bind = , m,     exec, echo "click middle" | dotoolc  # M key: middle click
+bind = , q, exec, echo "click left" | dotoolc        # Q: left click
+bind = , w, exec, echo "click middle" | dotoolc      # W: middle click
+bind = , e, exec, echo "click right" | dotoolc       # E: right click
 
-# Scroll wheel simulation
-binde = , bracketleft,  exec, echo "wheel 20" | dotoolc  # [ : scroll up
-binde = , bracketright, exec, echo "wheel -20" | dotoolc # ] : scroll down
+# Scroll wheel
+bind = , bracketleft, exec, echo "wheel 20" | dotoolc   # [: scroll up
+bind = , bracketright, exec, echo "wheel -20" | dotoolc # ]: scroll down
 
-# 3. Exit cursor mode (ESC)
-# Restore mouse visibility settings, exit submap, and close Hyprland notification
-bind = , escape, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:inactive_timeout 3; hyprctl keyword cursor:hide_on_key_press true; hyprctl dispatch submap reset; hyprctl dismissnotify
+# Re-enter hyprwarp hints mode
+binde = $mainMod, semicolon, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:inactive_timeout 3; hyprctl keyword cursor:hide_on_key_press true; hyprctl dispatch submap reset; hyprctl dismissnotify; hyprwarp  # Super + ;: reopen hints mode
+
+# Exit cursor mode
+bind = , escape, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:inactive_timeout 3; hyprctl keyword cursor:hide_on_key_press true; hyprctl dispatch submap reset; hyprctl dismissnotify  # ESC: restore settings, exit submap, close notification
 
 submap = reset
 ```

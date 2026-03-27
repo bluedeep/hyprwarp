@@ -125,39 +125,42 @@ cursor {
     inactive_timeout = 3     
 }
 
-# 1. 绑定启动快捷键 (Win + ;)
-bind = $mainMod, semicolon, exec, hyprwarp
+bind = $mainMod, semicolon, exec, hyprwarp # Super + ; 启动 hyprwarp 进入hints模式
 
-# 2. 定义名为 cursor 的子模式（由 hyprwarp 的 on_exit_cmd 自动触发进入）
+# 定义名为 cursor 的子模式（由 hyprwarp 的 on_exit_cmd 自动触发进入）
 submap = cursor
 
-# V 键：模拟左键按住（进入拖拽模式）
-bind = , v, exec, echo "buttondown left" | dotoolc 
+# 进入选择/拖拽模式
+bind = , v, exec, echo "buttondown left" | dotoolc  # V 模拟左键持续按住
 
-# 基础移动 (Vim 风格: hjkl)
-binde = , j, exec, echo "mousemove 0 5" | dotoolc
-binde = , k, exec, echo "mousemove 0 -5" | dotoolc
-binde = , l, exec, echo "mousemove 5 0" | dotoolc
-binde = , h, exec, echo "mousemove -5 0" | dotoolc
+# 移动鼠标（使用 Vim 风格按键）
+binde = , j, exec, echo "mousemove 0 30" | dotoolc  # j 鼠标下移
+binde = , k, exec, echo "mousemove 0 -30" | dotoolc # k 鼠标上移
+binde = , l, exec, echo "mousemove 30 0" | dotoolc  # l 鼠标右移
+binde = , h, exec, echo "mousemove -30 0" | dotoolc # h 鼠标左移
 
-# 快速移动 (Shift + hjkl)
-binde = SHIFT, j, exec, echo "mousemove 0 30" | dotoolc
-binde = SHIFT, k, exec, echo "mousemove 0 -30" | dotoolc
-binde = SHIFT, l, exec, echo "mousemove 30 0" | dotoolc
-binde = SHIFT, h, exec, echo "mousemove -30 0" | dotoolc
+# 精细移动
+binde = SHIFT, j, exec, echo "mousemove 0 10" | dotoolc     # shift + j 鼠标缓慢下移
+binde = SHIFT, k, exec, echo "mousemove 0 -10" | dotoolc    # shift + k 鼠标缓慢上移
+binde = SHIFT, l, exec, echo "mousemove 10 0" | dotoolc     # shift + l 鼠标缓慢右移
+binde = SHIFT, h, exec, echo "mousemove -10 0" | dotoolc    # shift + h 鼠标缓慢左移
 
-# 点击模拟
-bind = , space, exec, echo "click left" | dotoolc    # 空格：左键
-bind = , f,     exec, echo "click right" | dotoolc   # F 键：右键
-bind = , m,     exec, echo "click middle" | dotoolc  # M 键：中键
+# 鼠标点击
+bind = , space, exec, echo "click left" | dotoolc   # 空格: 左键点击
+bind = , q, exec, echo "click left" | dotoolc       # Q 键: 左键点击
+bind = , w, exec, echo "click middle" | dotoolc     # W 键：中键点击
+bind = , e, exec, echo "click right" | dotoolc      # E 键：右键点击
 
-# 滚轮模拟
-binde = , bracketleft,  exec, echo "wheel 20" | dotoolc  # [ : 向上滚
-binde = , bracketright, exec, echo "wheel -20" | dotoolc # ] : 向下滚
+# 模拟滚轮
+bind = , bracketleft, exec, echo "wheel 20" | dotoolc   # [ 向上滚动
+bind = , bracketright, exec, echo "wheel -20" | dotoolc # ] 向下滚动
 
-# 3. 退出鼠标模式 (ESC)
-# 恢复鼠标显示设置，退出子模式，并关闭 Hyprland 通知
-bind = , escape, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:inactive_timeout 3; hyprctl keyword cursor:hide_on_key_press true; hyprctl dispatch submap reset; hyprctl dismissnotify
+# 再次进入hyprwarp hints模式 
+binde = $mainMod, semicolon, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:inactive_timeout 3; hyprctl keyword cursor:hide_on_key_press true; hyprctl dispatch submap reset; hyprctl dismissnotify; hyprwarp # Super + ; 重新打开 hints 模式
+
+
+# 退出鼠标模式
+bind = , escape, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:inactive_timeout 3; hyprctl keyword cursor:hide_on_key_press true; hyprctl dispatch submap reset; hyprctl dismissnotify # esc 恢复鼠标显示设置，退出子模式，并关闭 Hyprland 通知
 
 submap = reset
 ```
