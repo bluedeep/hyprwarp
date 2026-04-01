@@ -28,6 +28,8 @@
 #include "layer-shell.h"
 #include "xdg-output.h"
 #include "virtual-pointer.h"
+#include "config.h"
+#include "key_listener.h"
 
 #define MAX_HINTS 1024
 #define MAX_SCREENS 8
@@ -87,15 +89,8 @@ static int global_surface_h = 0;
 static int global_origin_x = 0;
 static int global_origin_y = 0;
 
-/* Configuration (loaded from config file) */
-static char bgcolor[16] = "#ff555560";
-static char fgcolor[16] = "#ffffffff";
-static const char *font_family = "monospace";
-static int hint_size = 18;
-static int hint_radius = 25;
-static char hint_chars[32] = "asdfghjklqwertzxv";
-static char on_select_cmd[256] = {0};
-static char on_exit_cmd[256] = {0};
+/* Configuration */
+static struct hyprwarp_config config;
 
 /* Hint matching state */
 static struct hint matched[MAX_HINTS];
@@ -109,73 +104,9 @@ static int selected_x = 0;
 static int selected_y = 0;
 static int selection_made = 0;
 
-/* ============================================================================
- * Configuration Loading
- * ============================================================================ */
-
-static void load_config(void)
-{
-    char config_path[512];
-    snprintf(config_path, sizeof(config_path), "%s/.config/hyprwarp/config", getenv("HOME"));
-    
-    FILE *f = fopen(config_path, "r");
-    if (!f) {
-        char dir_path[512];
-        snprintf(dir_path, sizeof(dir_path), "%s/.config/hyprwarp", getenv("HOME"));
-        mkdir(dir_path, 0755);
-        
-        f = fopen(config_path, "w");
-        if (!f) return;
-        
-        fprintf(f, "# hyprwarp config\n");
-        fprintf(f, "hint_bgcolor=#ff555560\n");
-        fprintf(f, "hint_fgcolor=#ffffffff\n");
-        fprintf(f, "hint_size=18\n");
-        fprintf(f, "hint_radius=25\n");
-        fprintf(f, "hint_chars=asdfghjklqwertzxv\n");
-        fprintf(f, "on_select_cmd=hyprctl dispatch movecursor {global_x} {global_y}\n");
-        fprintf(f, "on_exit_cmd=hyprctl notify 2 3600000 \"rgb(ff0000)\" \"ON MOUSE MODE\"; hyprctl keyword cursor:inactive_timeout 0; hyprctl keyword cursor:hide_on_key_press false; hyprctl dispatch submap cursor");
-        fclose(f);
-        strncpy(on_select_cmd, "hyprctl dispatch movecursor {global_x} {global_y}", sizeof(on_select_cmd) - 1);
-        strncpy(on_exit_cmd, "hyprctl notify 2 3600000 \"rgb(ff0000)\" \"ON MOUSE MODE\"; hyprctl keyword cursor:inactive_timeout 0; hyprctl keyword cursor:hide_on_key_press false; hyprctl dispatch submap cursor", sizeof(on_exit_cmd) -1);
-        return;
-    }
-    
-    char line[256];
-    while (fgets(line, sizeof(line), f)) {
-        if (line[0] == '#' || line[0] == '\n') continue;
-        
-        line[strcspn(line, "\n")] = 0;
-        
-        char *eq = strchr(line, '=');
-        if (!eq) continue;
-        
-        *eq = '\0';
-        char *key = line;
-        char *value = eq + 1;
-        
-        if (strcmp(key, "hint_bgcolor") == 0) {
-            strncpy(bgcolor, value, sizeof(bgcolor) - 1);
-        } else if (strcmp(key, "hint_fgcolor") == 0) {
-            strncpy(fgcolor, value, sizeof(fgcolor) - 1);
-        } else if (strcmp(key, "hint_size") == 0) {
-            hint_size = atoi(value);
-            if (hint_size < 8) hint_size = 8;
-            if (hint_size > 64) hint_size = 64;
-        } else if (strcmp(key, "hint_radius") == 0) {
-            hint_radius = atoi(value);
-            if (hint_radius < 0) hint_radius = 0;
-            if (hint_radius > 100) hint_radius = 100;
-        } else if (strcmp(key, "hint_chars") == 0) {
-            strncpy(hint_chars, value, sizeof(hint_chars) - 1);
-        } else if (strcmp(key, "on_select_cmd") == 0) {
-            strncpy(on_select_cmd, value, sizeof(on_select_cmd) - 1);
-        } else if (strcmp(key, "on_exit_cmd") == 0) {
-            strncpy(on_exit_cmd, value, sizeof(on_exit_cmd) - 1);
-        }
-    }
-    fclose(f);
-}
+/* Forward declarations */
+static void move_mouse(int x, int y);
+static void expand_cmd(const char *cmd, char *output, size_t size, int x, int y);
 
 /* ============================================================================
  * Rendering Functions
@@ -197,8 +128,8 @@ static void draw_text(cairo_t *cr, const char *s, int x, int y, int w, int h)
 {
     cairo_text_extents_t extents;
 
-    cairo_select_font_face(cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size(cr, hint_size);
+    cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, config.hint_size);
     cairo_text_extents(cr, s, &extents);
 
     cairo_move_to(cr, x + (w - extents.width) / 2, y - extents.y_bearing + (h - extents.height) / 2);
@@ -229,8 +160,8 @@ static void render_hints_for_screen(int screen_idx)
     
     /* Determine screen prefix (used for multi-screen) */
     char screen_prefix = '\0';
-    if (nr_screens > 1 && screen_idx < (int)strlen(hint_chars)) {
-        screen_prefix = hint_chars[screen_idx];
+    if (nr_screens > 1 && screen_idx < (int)strlen(config.hint_chars)) {
+        screen_prefix = config.hint_chars[screen_idx];
     }
     
     /* Multi-screen with prefix input: render only matching screen */
@@ -285,10 +216,10 @@ static void render_hints_for_screen(int screen_idx)
         if (!match) continue;
         
         local_matched++;
-        hex_to_rgba(bgcolor, &r, &g, &b, &a);
+        hex_to_rgba(config.bgcolor, &r, &g, &b, &a);
         cairo_set_source_rgba(cr, r/255.0, g/255.0, b/255.0, a/255.0);
         
-        int radius = h->h * hint_radius / 100;
+        int radius = h->h * config.hint_radius / 100;
         int hx= h->x;
         int hy = h->y;
         int hw = h->w;
@@ -306,7 +237,7 @@ static void render_hints_for_screen(int screen_idx)
             cairo_rectangle(cr, hx, hy, hw, hh);
             cairo_fill(cr);
         }
-        hex_to_rgba(fgcolor, &r, &g, &b, &a);
+        hex_to_rgba(config.fgcolor, &r, &g, &b, &a);
         cairo_set_source_rgba(cr, r/255.0, g/255.0, b/255.0, a/255.0);
 
         /* Build label with screen prefix */
@@ -358,8 +289,8 @@ static void filter_hints(void)
     int filter_screen = -1;  /* -1 means all screens */
     if (nr_screens > 1 && input_len >= 1) {
         /* Multi-screen: first char is screen prefix */
-        for (int s = 0; s < nr_screens && s < (int)strlen(hint_chars); s++) {
-            if (input_buf[0] == hint_chars[s]) {
+        for (int s = 0; s < nr_screens && s < (int)strlen(config.hint_chars); s++) {
+            if (input_buf[0] == config.hint_chars[s]) {
                 filter_screen = s;
                 break;
             }
@@ -411,16 +342,16 @@ static void generate_hints(void)
     char unique_chars[32] = {0};
     int unique_len = 0;
     
-    for (int i = 0; i < (int)strlen(hint_chars); i++) {
+    for (int i = 0; i < (int)strlen(config.hint_chars); i++) {
         int found = 0;
         for (int j = 0; j < unique_len; j++) {
-            if (hint_chars[i] == unique_chars[j]) {
+            if (config.hint_chars[i] == unique_chars[j]) {
                 found = 1;
                 break;
             }
         }
         if (!found) {
-            unique_chars[unique_len++] = hint_chars[i];
+            unique_chars[unique_len++] = config.hint_chars[i];
         }
     }
     
@@ -428,8 +359,8 @@ static void generate_hints(void)
     int nc = unique_len;
 
     /* Multi-screen uses 3-char labels, need wider hint */
-    int hint_w = hint_size * (nr_screens > 1 ? 3 : 2);
-    int hint_h = (int)(hint_size * 1.5);
+    int hint_w = config.hint_size * (nr_screens > 1 ? 3 : 2);
+    int hint_h = (int)(config.hint_size * 1.5);
 
     /* Generate hints for each screen */
     for (int s = 0; s < nr_screens; s++) {
@@ -791,7 +722,8 @@ if (nr_matched == 1) {
                     selected_x = matched[0].x + matched[0].w / 2;
                     selected_y = matched[0].y + matched[0].h / 2;
                     selection_made = 1;
-                    running = 0;
+                    move_mouse(selected_x, selected_y);
+                    key_listener_activate(selected_x, selected_y);
                 } else if (nr_matched == 0) {
                     size_t len = strlen(input_buf);
                     if (len > 0) input_buf[len - 1] = 0;
@@ -808,8 +740,16 @@ if (nr_matched == 1) {
     char name[64];
     xkb_keysym_get_name(keysym, name, sizeof(name));
 
-    if (strcmp(name, "Escape") == 0) {
+    if (strcmp(name, config.exit_key) == 0) {
+        if (selection_made && config.on_exit_cmd[0] != '\0') {
+            char cmd[256];
+            expand_cmd(config.on_exit_cmd, cmd, sizeof(cmd), selected_x, selected_y);
+            int __attribute__((unused)) _res = system(cmd);
+        }
+        key_listener_deactivate();
         running = 0;
+    } else if (key_listener_is_active()) {
+        key_listener_handle_key(name, &config);
     } else if (strcmp(name, "BackSpace") == 0) {
         size_t len = strlen(input_buf);
         if (len > 0) input_buf[len - 1] = 0;
@@ -819,15 +759,15 @@ if (nr_matched == 1) {
         char utf8[8] = {0};
         int utf8_len = xkb_keysym_to_utf8(keysym, utf8, sizeof(utf8));
         if (utf8_len > 0 && strlen(input_buf) < sizeof(input_buf) - 1) {
-            if (strchr(hint_chars, utf8[0]) != NULL) {
+            if (strchr(config.hint_chars, utf8[0]) != NULL) {
                 size_t len = strlen(input_buf);
                 input_buf[len] = utf8[0];
                 input_buf[len + 1] = '\0';
                 
                 /* Multi-screen: first input determines current screen */
                 if (nr_screens > 1 && strlen(input_buf) == 1) {
-                    for (int s = 0; s < nr_screens && s < (int)strlen(hint_chars); s++) {
-                        if (input_buf[0] == hint_chars[s]) {
+                    for (int s = 0; s < nr_screens && s < (int)strlen(config.hint_chars); s++) {
+                        if (input_buf[0] == config.hint_chars[s]) {
                             current_screen_index = s;
                             screen = &screens[s];
                             break;
@@ -838,12 +778,12 @@ if (nr_matched == 1) {
                 
                 filter_hints();
 
-                if (nr_matched == 1) {
+if (nr_matched == 1) {
                     selected_x = matched[0].x + matched[0].w / 2;
                     selected_y = matched[0].y + matched[0].h / 2;
-                    /* Coordinates are relative to current screen, no offset needed */
                     selection_made = 1;
-                    running = 0;
+                    move_mouse(selected_x, selected_y);
+                    key_listener_activate(selected_x, selected_y);
                 } else if (nr_matched == 0) {
                     size_t len = strlen(input_buf);
                     if (len > 0) input_buf[len - 1] = 0;
@@ -926,7 +866,7 @@ static int create_layer_surfaces(void)
                                          ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT);
         zwlr_layer_surface_v1_set_exclusive_zone(screens[i].layer_surface, -1);
         zwlr_layer_surface_v1_set_keyboard_interactivity(screens[i].layer_surface, 
-                                                         ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND);
+                                                         ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
         zwlr_layer_surface_v1_add_listener(screens[i].layer_surface, &layer_surface_listener, &screens[i]);
 
         wl_surface_commit(screens[i].wl_surface);
@@ -1006,12 +946,12 @@ static void move_mouse(int x, int y)
             (uint32_t)x, (uint32_t)y, 
             (uint32_t)screen->w, (uint32_t)screen->h);
         zwlr_virtual_pointer_v1_frame(wl.ptr);
-    } else if (on_select_cmd[0] != '\0') {
+    } else if (config.on_select_cmd[0] != '\0') {
         char cmd[512];
-        expand_cmd(on_select_cmd, cmd, sizeof(cmd), x, y);
+        expand_cmd(config.on_select_cmd, cmd, sizeof(cmd), x, y);
         int __attribute__((unused)) _res = system(cmd);
     } else {
-        fprintf(stderr, "Error: on_select_cmd not set\n");
+        fprintf(stderr, "Error: config.on_select_cmd not set\n");
     }
 }
 
@@ -1036,15 +976,18 @@ static void print_help(const char *prog_name)
     printf("  -v, --version  Show version information and exit\n");
     printf("\n");
     printf("After launching, a grid of hint tags appears on screen.\n");
-    printf("Type characters to filter hints. Press ESC to cancel.\n");
+    printf("Type characters to filter hints. When a hint is uniquely matched,\n");
+    printf("config.on_select_cmd is executed. Press the exit key (default: Escape) to exit.\n");
     printf("\n");
-    printf("Multi-screen: First character selects the screen (from hint_chars).\n");
+    printf("Multi-screen: First character selects the screen (from config.hint_chars).\n");
     printf("\n");
     printf("Configuration file: ~/.config/hyprwarp/config\n");
     printf("\n");
-    printf("Callback commands (in config):\n");
-    printf("  on_select_cmd - executed when a hint is selected\n");
-    printf("  on_exit_cmd   - executed before program exits\n");
+    printf("Config options:\n");
+    printf("  hint_bgcolor, hint_fgcolor, config.hint_size, config.hint_radius, config.hint_chars\n");
+    printf("  config.exit_key      - key to exit (default: Escape)\n");
+    printf("  config.on_select_cmd - executed when a hint is selected\n");
+    printf("  config.on_exit_cmd   - executed when exit key is pressed\n");
     printf("\n");
     printf("Available placeholders:\n");
     printf("  {screen_w}, {screen_h}   - screen dimensions\n");
@@ -1075,7 +1018,9 @@ int main(int argc, char **argv)
         return 1;
     }
     
-    load_config();
+    load_config(&config);
+    
+    key_listener_init();
     
     signal(SIGINT, SIG_DFL);
     signal(SIGTERM, SIG_DFL);
@@ -1151,20 +1096,14 @@ int main(int argc, char **argv)
     generate_hints();
     render_hints();
 
-    fprintf(stderr, "Hint mode started. Type to filter, ESC to cancel.\n");
+    fprintf(stderr, "Hint mode started. Type to filter. Press Escape to exit.\n");
 
     while (running && wl_display_dispatch(wl.dpy) != -1) {}
 
-    if (selection_made) {
+if (selection_made) {
         nr_matched = 0;
         render_hints();
         wl_display_roundtrip(wl.dpy);
-        move_mouse(selected_x, selected_y);
-if (on_exit_cmd[0] != '\0') {
-            char cmd[256];
-            expand_cmd(on_exit_cmd, cmd, sizeof(cmd), selected_x, selected_y);
-            int __attribute__((unused)) _res = system(cmd);
-        }
     }
 
     for (int i = 0; i < nr_screens; i++) {

@@ -78,11 +78,12 @@ environment.systemPackages = [
 3. **Multi-screen mode**: If you have multiple monitors, each screen has a unique prefix character (first character of `hint_chars` corresponds to the first screen, and so on). Type the prefix to select a screen, then type the hint label.
 4. **Single-screen mode**: Simply type characters corresponding to tags (e.g., type `as`) to filter
 5. **Function keys**:
-   - `ESC`: Cancel and exit
    - `Backspace`: Delete last input character
-6. **Trigger logic**: When input uniquely matches a tag:
-   - First executes `on_select_cmd` (typically to move mouse pointer)
-   - Then executes `on_exit_cmd` (typically to switch submodes or send notifications)
+   - `ESC` (or configured `exit_key`): Exit the program
+6. **Workflow**:
+   - When input uniquely matches a tag, `on_select_cmd` is executed (typically moves mouse pointer)
+   - Program continues running, waiting for the exit key
+   - Press the exit key to trigger `on_exit_cmd` and exit
 
 ## Configuration
 
@@ -97,7 +98,17 @@ If the file doesn't exist on first run, it will be automatically created with th
 | `hint_size` | `18` | Font size in pixels (range 8-64) |
 | `hint_radius` | `25` | Corner radius as percentage of height (0-100) |
 | `hint_chars` | `asdfghjklqwertzxv` | Character set for hints (determines grid density) |
-| `on_select_cmd` | `hyprctl dispatch movecursor {global_x} {global_y}` | Command triggered immediately after selecting a hint |
+| `exit_key` | `Escape` | Key to exit after selection (keysym name) |
+| `move_up_key` | `k` | Key to move mouse up (after hint selection) |
+| `move_down_key` | `j` | Key to move mouse down |
+| `move_left_key` | `h` | Key to move mouse left |
+| `move_right_key` | `l` | Key to move mouse right |
+| `click_left_key` | `space` | Key for left click |
+| `click_middle_key` | `w` | Key for middle click |
+| `click_right_key` | `e` | Key for right click |
+| `scroll_up_key` | `bracketleft` | Key for scroll up |
+| `scroll_down_key` | `bracketright` | Key for scroll down |
+| `on_select_cmd` | `hyprctl dispatch movecursor {global_x} {global_y}` | Command triggered when a hint is selected |
 | `on_exit_cmd` | `hyprctl notify ...` | Command triggered before final exit |
 
 ### Command Variable Substitution

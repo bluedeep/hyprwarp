@@ -12,17 +12,16 @@ LDFLAGS = -lwayland-client -lwayland-cursor -lxkbcommon -lrt -lcairo -lpthread $
 
 MAIN_SRC = src/main.c
 MAIN_OBJ = src/main.o
+CONFIG_OBJ = src/config.o
+KEY_LISTENER_OBJ = src/key_listener.o
 WL_OBJS = src/layer-shell.o src/virtual-pointer.o src/xdg-output.o src/xdg-shell.o
 
-all: $(MAIN_OBJ) $(WL_OBJS)
+all: $(MAIN_OBJ) $(CONFIG_OBJ) $(KEY_LISTENER_OBJ) $(WL_OBJS)
 	@mkdir -p bin
-	$(CC) -o bin/hyprwarp $(MAIN_OBJ) $(WL_OBJS) $(LDFLAGS)
-
-%.o: %.c
-	$(CC) -c $< -o $@ $(CFLAGS)
+	$(CC) -o bin/hyprwarp $(MAIN_OBJ) $(CONFIG_OBJ) $(KEY_LISTENER_OBJ) $(WL_OBJS) $(LDFLAGS)
 
 clean:
-	rm -f $(MAIN_OBJ) $(WL_OBJS)
+	rm -f $(MAIN_OBJ) $(CONFIG_OBJ) $(KEY_LISTENER_OBJ) $(WL_OBJS)
 	rm -rf bin
 
 install: all

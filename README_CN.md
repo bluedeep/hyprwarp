@@ -72,16 +72,17 @@ environment.systemPackages = [
 
 ## 使用方法
 
-1. 建议在 Hyprland 中绑定快捷键启动 `hyprwarp`（见下文[配置示例](#hyprland-%E8%BF%9B%E9%98%B6%E9%85%8D%E7%BD%AE%E7%A4%BA%E4%BE%8B)）。
+1. 建议在 Hyprland 中绑定快捷键启动 `hyprwarp`（见下文[配置示例](#hyprland-进阶配置示例)）。
 2. 启动后，屏幕会显示提示标签网格。
 3. **多屏幕模式**：如果有多个显示器，每个屏幕会有一个唯一的前缀字符（`hint_chars` 的第一个字符对应第一个屏幕，以此类推）。先输入前缀选择屏幕，然后输入标签字符。
 4. **单屏幕模式**：直接输入标签对应的字符（如输入 `as`）进行过滤。
 5. **功能按键**：
-   - `ESC`：取消操作并退出。
    - `Backspace`：删除上一个输入的字符。
-6. **触发逻辑**：当输入唯一匹配某个标签时：
-   - 首先执行 `on_select_cmd`（通常用于移动鼠标指针）。
-   - 随后执行 `on_exit_cmd`（通常用于切换子模式或发送通知）。
+   - `ESC`（或配置的 `exit_key`）：退出程序。
+6. **工作流程**：
+   - 当输入唯一匹配某个标签时，执行 `on_select_cmd`（通常用于移动鼠标指针）。
+   - 程序继续运行，等待按下退出键。
+   - 按下退出键后执行 `on_exit_cmd` 并退出。
 
 ## 配置文件
 
@@ -96,7 +97,17 @@ environment.systemPackages = [
 | `hint_size` | `18` | 字体大小 (像素, 范围 8-64) |
 | `hint_radius` | `25` | 圆角半径 (占高度的百分比, 0-100) |
 | `hint_chars` | `asdfghjklqwertzxv` | 标签字符集 (决定网格密度) |
-| `on_select_cmd` | `hyprctl dispatch movecursor {global_x} {global_y}` | 选中标签后立即触发的命令 |
+| `exit_key` | `Escape` | 退出按键 (keysym名称) |
+| `move_up_key` | `k` | 鼠标上移按键 (选中提示后) |
+| `move_down_key` | `j` | 鼠标下移按键 |
+| `move_left_key` | `h` | 鼠标左移按键 |
+| `move_right_key` | `l` | 鼠标右移按键 |
+| `click_left_key` | `space` | 左键点击按键 |
+| `click_middle_key` | `w` | 中键点击按键 |
+| `click_right_key` | `e` | 右键点击按键 |
+| `scroll_up_key` | `bracketleft` | 向上滚动按键 |
+| `scroll_down_key` | `bracketright` | 向下滚动按键 |
+| `on_select_cmd` | `hyprctl dispatch movecursor {global_x} {global_y}` | 选中标签后触发的命令 |
 | `on_exit_cmd` | `hyprctl notify ...` | 最终退出前触发的命令 |
 
 ### 命令变量替换
