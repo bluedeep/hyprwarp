@@ -165,6 +165,13 @@ bind = , escape, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:in
 submap = reset
 ```
 
+## Acknowledgments
+
+- [Hyprland](https://github.com/hyprwm/Hyprland)
+- [warpd](https://github.com/rvaiya/warpd)
+- [dotool](https://sr.ht/~geb/dotool)
+- [LINUX DO](https://linux.do)
+
 ## Support
 
 If you find this project helpful, consider buying me a coffee! ☕
