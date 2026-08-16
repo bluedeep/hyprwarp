@@ -1,3 +1,5 @@
+
+
 # Hyprwarp
 
 [中文文档](README_CN.md)
@@ -27,7 +29,7 @@ It overlays a grid-based hint system on the screen, allowing users to instantly 
 - `wayland-cursor`
 - `xkbcommon`
 - `cairo`
-- `dotool` (**Recommended**: for mouse movement and click simulation)
+- `dotool` (**Recommended**: for simulating mouse movement, clicking, dragging, and scrolling)
 
 ### Installing dotool (Arch Linux example)
 
