@@ -2,7 +2,7 @@
 
 pkgs.stdenv.mkDerivation {
   pname = "hyprwarp";
-  version = "1.0.1";
+  version = "1.0.2";
   src = ./.;
   buildInputs = with pkgs; [
     wayland

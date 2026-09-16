@@ -96,8 +96,18 @@ environment.systemPackages = [
 | `hint_size` | `18` | 字体大小 (像素, 范围 8-64) |
 | `hint_radius` | `25` | 圆角半径 (占高度的百分比, 0-100) |
 | `hint_chars` | `asdfghjklqwertzxv` | 标签字符集 (决定网格密度) |
-| `on_select_cmd` | `hyprctl dispatch movecursor {global_x} {global_y}` | 选中标签后立即触发的命令 |
-| `on_exit_cmd` | `hyprctl notify ...` | 最终退出前触发的命令 |
+| `on_select_cmd` | `hyprctl dispatch 'hl.dsp.cursor.move({ x = {global_x}, y = {global_y} })'` | 选中标签后立即触发的命令（Hyprland ≥ 0.55 语法） |
+| `on_exit_cmd` | `hyprctl notify ...; hyprctl eval 'hl.config({ cursor = ... })'; ...` | 最终退出前触发的命令（Hyprland ≥ 0.55 语法） |
+
+<details>
+<summary>Hyprland &lt; 0.55 旧版默认值（旧的 <code>hyprctl dispatch</code> 语法）</summary>
+
+| 选项 | 默认值 |
+| :--- | :--- |
+| `on_select_cmd` | `hyprctl dispatch movecursor {global_x} {global_y}` |
+| `on_exit_cmd` | `hyprctl notify ...; hyprctl keyword cursor:inactive_timeout 0; hyprctl keyword cursor:hide_on_key_press false; hyprctl dispatch submap cursor` |
+
+</details>
 
 ### 命令变量替换
 
@@ -111,7 +121,77 @@ environment.systemPackages = [
 
 ## Hyprland 进阶配置示例
 
-将以下配置加入你的 `hyprland.conf`，即可实现类似 `warpd` 的完整键盘控鼠体验：
+### Hyprland ≥ 0.55（Lua 模式）
+
+Hyprland 0.55 之后配置切换为 Lua 模式（`hyprland.lua`）。将以下配置加入（例如放入 `hypr.conf/mouse.lua` 模块并在 `hyprland.lua` 中 require），即可实现类似 `warpd` 的完整键盘控鼠体验：
+
+```lua
+-- 鼠标相关配置, 以及键盘模拟鼠标功能
+
+-- 按下键盘时隐藏鼠标; 空闲时间隐藏 (3秒)
+hl.config({
+  cursor = {
+    hide_on_key_press = true,
+    inactive_timeout = 3,
+  },
+})
+
+-- 鼠标模式
+-- 1. 启动 hyprwarp 进入hints模式
+--    (由 hyprwarp 的 on_exit_cmd 自动触发进入 cursor 子映射)
+hl.bind("SUPER + semicolon",
+  hl.dsp.exec_cmd("hyprwarp")) -- Super + ; 启动 hyprwarp 进入hints模式
+
+-- 2. 定义名为 cursor 的子模式（由 hyprwarp 的 on_exit_cmd 自动触发进入）
+hl.define_submap("cursor", function()
+  -- 进入选择/拖拽模式
+  hl.bind("v", hl.dsp.exec_cmd("echo \"buttondown left\" | dotoolc")) -- V 模拟左键持续按住
+
+  -- 移动鼠标（使用 Vim 风格按键）
+  hl.bind("j", hl.dsp.exec_cmd("echo \"mousemove 0 30\" | dotoolc"),  { repeating = true }) -- j 鼠标下移
+  hl.bind("k", hl.dsp.exec_cmd("echo \"mousemove 0 -30\" | dotoolc"), { repeating = true }) -- k 鼠标上移
+  hl.bind("l", hl.dsp.exec_cmd("echo \"mousemove 30 0\" | dotoolc"),  { repeating = true }) -- l 鼠标右移
+  hl.bind("h", hl.dsp.exec_cmd("echo \"mousemove -30 0\" | dotoolc"), { repeating = true }) -- h 鼠标左移
+
+  -- 精细移动
+  hl.bind("SHIFT + j", hl.dsp.exec_cmd("echo \"mousemove 0 10\" | dotoolc"),  { repeating = true }) -- shift + j 鼠标缓慢下移
+  hl.bind("SHIFT + k", hl.dsp.exec_cmd("echo \"mousemove 0 -10\" | dotoolc"), { repeating = true }) -- shift + k 鼠标缓慢上移
+  hl.bind("SHIFT + l", hl.dsp.exec_cmd("echo \"mousemove 10 0\" | dotoolc"),  { repeating = true }) -- shift + l 鼠标缓慢右移
+  hl.bind("SHIFT + h", hl.dsp.exec_cmd("echo \"mousemove -10 0\" | dotoolc"), { repeating = true }) -- shift + h 鼠标缓慢左移
+
+  -- 鼠标点击
+  hl.bind("space", hl.dsp.exec_cmd("echo \"click left\" | dotoolc"))   -- 空格: 左键点击
+  hl.bind("q",     hl.dsp.exec_cmd("echo \"click left\" | dotoolc"))   -- Q 键: 左键点击
+  hl.bind("w",     hl.dsp.exec_cmd("echo \"click middle\" | dotoolc")) -- W 键：中键点击
+  hl.bind("e",     hl.dsp.exec_cmd("echo \"click right\" | dotoolc"))  -- E 键：右键点击
+
+  -- 模拟滚轮
+  hl.bind("bracketleft",  hl.dsp.exec_cmd("echo \"wheel 20\" | dotoolc"))  -- [ 向上滚动
+  hl.bind("bracketright", hl.dsp.exec_cmd("echo \"wheel -20\" | dotoolc")) -- ] 向下滚动
+
+  -- 再次进入hyprwarp hints模式
+  hl.bind("SUPER + semicolon", -- Super + ; 重新打开 hints 模式
+    hl.dsp.exec_cmd(
+      "echo \"buttonup left\" | dotoolc; "
+      .. "hyprctl eval 'hl.config({ cursor = { inactive_timeout = 3, hide_on_key_press = true }})'; "
+      .. "hyprctl dispatch 'hl.dsp.submap(\"reset\")'; "
+      .. "hyprctl dismissnotify; "
+      .. "hyprwarp"
+    ),
+    { repeating = true })
+
+  -- 退出鼠标模式: esc 恢复鼠标显示设置，退出子模式，并关闭 Hyprland 通知
+  hl.bind("escape", hl.dsp.exec_cmd(
+    "echo \"buttonup left\" | dotoolc; "
+    .. "hyprctl eval 'hl.config({ cursor = { inactive_timeout = 3, hide_on_key_press = true }})'; "
+    .. "hyprctl dispatch 'hl.dsp.submap(\"reset\")'; "
+    .. "hyprctl dismissnotify"
+  ))
+end)
+```
+
+<details>
+<summary>Hyprland &lt; 0.55 旧版配置（<code>hyprland.conf</code>）</summary>
 
 ```ini
 # 启动 dotool 服务端
@@ -158,12 +238,13 @@ bind = , bracketright, exec, echo "wheel -20" | dotoolc # ] 向下滚动
 # 再次进入hyprwarp hints模式 
 binde = $mainMod, semicolon, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:inactive_timeout 3; hyprctl keyword cursor:hide_on_key_press true; hyprctl dispatch submap reset; hyprctl dismissnotify; hyprwarp # Super + ; 重新打开 hints 模式
 
-
 # 退出鼠标模式
 bind = , escape, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:inactive_timeout 3; hyprctl keyword cursor:hide_on_key_press true; hyprctl dispatch submap reset; hyprctl dismissnotify # esc 恢复鼠标显示设置，退出子模式，并关闭 Hyprland 通知
 
 submap = reset
 ```
+
+</details>
 
 ## 致谢
 

@@ -133,11 +133,11 @@ static void load_config(void)
         fprintf(f, "hint_size=18\n");
         fprintf(f, "hint_radius=25\n");
         fprintf(f, "hint_chars=asdfghjklqwertzxv\n");
-        fprintf(f, "on_select_cmd=hyprctl dispatch movecursor {global_x} {global_y}\n");
-        fprintf(f, "on_exit_cmd=hyprctl notify 2 3600000 \"rgb(ff0000)\" \"ON MOUSE MODE\"; hyprctl keyword cursor:inactive_timeout 0; hyprctl keyword cursor:hide_on_key_press false; hyprctl dispatch submap cursor");
+        fprintf(f, "on_select_cmd=hyprctl dispatch 'hl.dsp.cursor.move({ x = {global_x}, y = {global_y} })'\n");
+        fprintf(f, "on_exit_cmd=hyprctl notify 2 3600000 \"rgb(ff0000)\" \"ON MOUSE MODE\"; hyprctl eval 'hl.config({ cursor = { inactive_timeout = 0, hide_on_key_press = false }})'; hyprctl dispatch 'hl.dsp.submap(\"cursor\")'");
         fclose(f);
-        strncpy(on_select_cmd, "hyprctl dispatch movecursor {global_x} {global_y}", sizeof(on_select_cmd) - 1);
-        strncpy(on_exit_cmd, "hyprctl notify 2 3600000 \"rgb(ff0000)\" \"ON MOUSE MODE\"; hyprctl keyword cursor:inactive_timeout 0; hyprctl keyword cursor:hide_on_key_press false; hyprctl dispatch submap cursor", sizeof(on_exit_cmd) -1);
+        strncpy(on_select_cmd, "hyprctl dispatch 'hl.dsp.cursor.move({ x = {global_x}, y = {global_y} })'", sizeof(on_select_cmd) - 1);
+        strncpy(on_exit_cmd, "hyprctl notify 2 3600000 \"rgb(ff0000)\" \"ON MOUSE MODE\"; hyprctl eval 'hl.config({ cursor = { inactive_timeout = 0, hide_on_key_press = false }})'; hyprctl dispatch 'hl.dsp.submap(\"cursor\")'", sizeof(on_exit_cmd) -1);
         return;
     }
     

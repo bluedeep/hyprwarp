@@ -97,8 +97,18 @@ If the file doesn't exist on first run, it will be automatically created with th
 | `hint_size` | `18` | Font size in pixels (range 8-64) |
 | `hint_radius` | `25` | Corner radius as percentage of height (0-100) |
 | `hint_chars` | `asdfghjklqwertzxv` | Character set for hints (determines grid density) |
-| `on_select_cmd` | `hyprctl dispatch movecursor {global_x} {global_y}` | Command triggered immediately after selecting a hint |
-| `on_exit_cmd` | `hyprctl notify ...` | Command triggered before final exit |
+| `on_select_cmd` | `hyprctl dispatch 'hl.dsp.cursor.move({ x = {global_x}, y = {global_y} })'` | Command triggered immediately after selecting a hint (Hyprland ≥ 0.55 syntax) |
+| `on_exit_cmd` | `hyprctl notify ...; hyprctl eval 'hl.config({ cursor = ... })'; ...` | Command triggered before final exit (Hyprland ≥ 0.55 syntax) |
+
+<details>
+<summary>Hyprland &lt; 0.55 legacy defaults (old <code>hyprctl dispatch</code> syntax)</summary>
+
+| Option | Default |
+| :--- | :--- |
+| `on_select_cmd` | `hyprctl dispatch movecursor {global_x} {global_y}` |
+| `on_exit_cmd` | `hyprctl notify ...; hyprctl keyword cursor:inactive_timeout 0; hyprctl keyword cursor:hide_on_key_press false; hyprctl dispatch submap cursor` |
+
+</details>
 
 ### Command Variable Substitution
 
@@ -112,7 +122,76 @@ In `on_select_cmd` and `on_exit_cmd`, you can use these placeholders:
 
 ## Advanced Hyprland Configuration Example
 
-Add the following to your `hyprland.conf` for a complete keyboard-driven mouse experience similar to `warpd`:
+### Hyprland ≥ 0.55 (Lua mode)
+
+Since Hyprland 0.55, configuration switching to Lua mode (`hyprland.lua`). Add the following (for example into a `hypr.conf/mouse.lua` module required by your `hyprland.lua`) for a complete keyboard-driven mouse experience similar to `warpd`:
+
+```lua
+-- Mouse-related config, keyboard-driven mouse simulation
+
+-- Hide cursor while typing; auto-hide after idle (3 seconds)
+hl.config({
+  cursor = {
+    hide_on_key_press = true,
+    inactive_timeout = 3,
+  },
+})
+
+-- Mouse mode
+-- 1. Launch hyprwarp into hints mode
+--    (hyprwarp's on_exit_cmd automatically triggers entering the cursor submap)
+hl.bind("SUPER + semicolon", hl.dsp.exec_cmd("hyprwarp")) -- Super + ; to launch hyprwarp hints mode
+
+-- 2. Define the "cursor" submap (automatically triggered by hyprwarp's on_exit_cmd)
+hl.define_submap("cursor", function()
+  -- Enter drag mode
+  hl.bind("v", hl.dsp.exec_cmd("echo \"buttondown left\" | dotoolc")) -- V: hold left button
+
+  -- Mouse movement (Vim style)
+  hl.bind("j", hl.dsp.exec_cmd("echo \"mousemove 0 30\" | dotoolc"),  { repeating = true }) -- j: move down
+  hl.bind("k", hl.dsp.exec_cmd("echo \"mousemove 0 -30\" | dotoolc"), { repeating = true }) -- k: move up
+  hl.bind("l", hl.dsp.exec_cmd("echo \"mousemove 30 0\" | dotoolc"),  { repeating = true }) -- l: move right
+  hl.bind("h", hl.dsp.exec_cmd("echo \"mousemove -30 0\" | dotoolc"), { repeating = true }) -- h: move left
+
+  -- Fine movement
+  hl.bind("SHIFT + j", hl.dsp.exec_cmd("echo \"mousemove 0 10\" | dotoolc"),  { repeating = true }) -- shift + j: slow down
+  hl.bind("SHIFT + k", hl.dsp.exec_cmd("echo \"mousemove 0 -10\" | dotoolc"), { repeating = true }) -- shift + k: slow up
+  hl.bind("SHIFT + l", hl.dsp.exec_cmd("echo \"mousemove 10 0\" | dotoolc"),  { repeating = true }) -- shift + l: slow right
+  hl.bind("SHIFT + h", hl.dsp.exec_cmd("echo \"mousemove -10 0\" | dotoolc"), { repeating = true }) -- shift + h: slow left
+
+  -- Click simulation
+  hl.bind("space", hl.dsp.exec_cmd("echo \"click left\" | dotoolc"))   -- Space: left click
+  hl.bind("q",     hl.dsp.exec_cmd("echo \"click left\" | dotoolc"))   -- Q: left click
+  hl.bind("w",     hl.dsp.exec_cmd("echo \"click middle\" | dotoolc")) -- W: middle click
+  hl.bind("e",     hl.dsp.exec_cmd("echo \"click right\" | dotoolc"))  -- E: right click
+
+  -- Scroll wheel
+  hl.bind("bracketleft",  hl.dsp.exec_cmd("echo \"wheel 20\" | dotoolc"))  -- [: scroll up
+  hl.bind("bracketright", hl.dsp.exec_cmd("echo \"wheel -20\" | dotoolc")) -- ]: scroll down
+
+  -- Re-enter hyprwarp hints mode
+  hl.bind("SUPER + semicolon", -- Super + ;: reopen hints mode
+    hl.dsp.exec_cmd(
+      "echo \"buttonup left\" | dotoolc; "
+      .. "hyprctl eval 'hl.config({ cursor = { inactive_timeout = 3, hide_on_key_press = true }})'; "
+      .. "hyprctl dispatch 'hl.dsp.submap(\"reset\")'; "
+      .. "hyprctl dismissnotify; "
+      .. "hyprwarp"
+    ),
+    { repeating = true })
+
+  -- Exit mouse mode: ESC restores cursor settings, exits submap and closes the Hyprland notification
+  hl.bind("escape", hl.dsp.exec_cmd(
+    "echo \"buttonup left\" | dotoolc; "
+    .. "hyprctl eval 'hl.config({ cursor = { inactive_timeout = 3, hide_on_key_press = true }})'; "
+    .. "hyprctl dispatch 'hl.dsp.submap(\"reset\")'; "
+    .. "hyprctl dismissnotify"
+  ))
+end)
+```
+
+<details>
+<summary>Hyprland &lt; 0.55 legacy configuration (<code>hyprland.conf</code>)</summary>
 
 ```ini
 # Start dotool daemon
@@ -142,9 +221,9 @@ binde = , h, exec, echo "mousemove -30 0" | dotoolc  # h: move left
 
 # Fine movement
 binde = SHIFT, j, exec, echo "mousemove 0 10" | dotoolc      # shift + j: slow down
-binde = SHIFT, k, exec, echo "mousemove 0 -10" | dotoolc      # shift + k: slow up
-binde = SHIFT, l, exec, echo "mousemove 10 0" | dotoolc       # shift + l: slow right
-binde = SHIFT, h, exec, echo "mousemove -10 0" | dotoolc      # shift + h: slow left
+binde = SHIFT, k, exec, echo "mousemove 0 -10" | dotoolc     # shift + k: slow up
+binde = SHIFT, l, exec, echo "mousemove 10 0" | dotoolc      # shift + l: slow right
+binde = SHIFT, h, exec, echo "mousemove -10 0" | dotoolc     # shift + h: slow left
 
 # Click simulation
 bind = , space, exec, echo "click left" | dotoolc    # Space: left click
@@ -153,8 +232,8 @@ bind = , w, exec, echo "click middle" | dotoolc      # W: middle click
 bind = , e, exec, echo "click right" | dotoolc       # E: right click
 
 # Scroll wheel
-bind = , bracketleft, exec, echo "wheel 20" | dotoolc   # [: scroll up
-bind = , bracketright, exec, echo "wheel -20" | dotoolc # ]: scroll down
+bind = , bracketleft, exec, echo "wheel 20" | dotoolc    # [: scroll up
+bind = , bracketright, exec, echo "wheel -20" | dotoolc  # ]: scroll down
 
 # Re-enter hyprwarp hints mode
 binde = $mainMod, semicolon, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:inactive_timeout 3; hyprctl keyword cursor:hide_on_key_press true; hyprctl dispatch submap reset; hyprctl dismissnotify; hyprwarp  # Super + ;: reopen hints mode
@@ -164,6 +243,8 @@ bind = , escape, exec, echo "buttonup left" | dotoolc; hyprctl keyword cursor:in
 
 submap = reset
 ```
+
+</details>
 
 ## Acknowledgments
 
